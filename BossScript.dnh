@@ -1,0 +1,43 @@
+#TouhouDanmakufu[Plural]
+#ScriptVersion[3]
+#include "script/default_system/Default_ShotConst.txt"
+
+#Title["Vs. Fag"]
+#Text["Test boss."]
+#BGM["./battle.ogg"]
+#Player["./player/gt_Marisa/MarisaA.txt"]
+#System["./system/Default_System.txt"]
+
+@Event{
+
+}
+
+@Initialize{
+	SetPlayerLife(99);
+
+	PluralSetup;
+}
+
+@MainLoop{
+    yield;
+}
+
+task PluralSetup{
+	let dir = GetCurrentScriptDirectory();
+	let obj = ObjEnemyBossScene_Create();
+
+	ObjEnemyBossScene_Add(obj, 0, dir ~ "./00_Warmup.dnh");
+	ObjEnemyBossScene_Add(obj, 1, dir ~ "./01_Nonspell.dnh");
+	ObjEnemyBossScene_Add(obj, 1, dir ~ "./01_Spell.dnh");
+	ObjEnemyBossScene_Add(obj, 2, dir ~ "./02_Nonspell.dnh");
+	ObjEnemyBossScene_Add(obj, 2, dir ~ "./02_Spell.dnh");
+	ObjEnemyBossScene_Add(obj, 3, dir ~ "./03_Nonspell.dnh");
+	ObjEnemyBossScene_Add(obj, 3, dir ~ "./03_Spell.dnh");
+
+	ObjEnemyBossScene_LoadInThread(obj);
+	ObjEnemyBossScene_Regist(obj);
+	while (!Obj_IsDeleted(obj)){
+		yield;
+	}
+	CloseScript(GetOwnScriptID());
+}

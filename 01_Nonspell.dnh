@@ -1,0 +1,106 @@
+#TouhouDanmakufu[Single]
+#ScriptVersion[3]
+#include "script/default_system/Default_ShotConst.txt"
+#include "./CommonFunction.dnh"
+
+#Title["01_Nonspell"]
+#Text["No comment."]
+#BGM["./battle.ogg"]
+#Player["./player/gt_Marisa/MarisaA.txt"]
+#System["./system/Default_System.txt"]
+
+let objBoss;
+let objScene = GetEnemyBossSceneObjectID();
+let maxHP = 4000;
+let bullet1Sfx = CreateSoundObj(GetCurrentScriptDirectory() ~ "/sfx/se_tan00.wav", 10);
+
+@Event{
+    alternative (GetEventType())
+    case (EV_REQUEST_LIFE){
+        SetScriptResult(maxHP);
+    }
+    case (EV_REQUEST_TIMER){
+        SetScriptResult(99);
+    }
+    case (EV_REQUEST_SPELL_SCORE){
+        SetScriptResult(1000000);        
+    }
+}
+
+@Initialize{
+	// SetPlayerLife(99);
+
+    objBoss = ObjEnemy_Create(OBJ_ENEMY_BOSS);
+    ObjEnemy_Regist(objBoss);
+    ObjMove_SetDestAtFrame(objBoss, GetCenterX(), GetCenterY() - 120, 60);
+
+	// ObjEnemyBossScene_StartSpell(objScene);
+
+	TDrawLoop;
+    TFinalize;
+    AttackLoop;
+}
+
+let globalTimer = 0;
+let angle = rand(0, 360);
+
+@MainLoop{
+	// Hitbox stuff:
+	ObjEnemy_SetIntersectionCircleToShot(objBoss, ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 32);
+    ObjEnemy_SetIntersectionCircleToPlayer(objBoss, ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 64);
+
+	// Bullet stuff:
+    if (globalTimer > 0 && (globalTimer % 120 == 0 || globalTimer % 180 == 0)){
+        ObjMove_SetDestAtWeight(objBoss, rand(GetCenterX() + 40, GetCenterX() - 40), rand(GetCenterY() - 130, GetCenterY() - 110), 15, 30);
+    }
+
+	// Timer stuff:
+	globalTimer += 1;
+    yield;
+}
+
+task AttackLoop{
+    delay(60);
+    while (IsAlive(objBoss)){
+        loop (6){
+            ObjSound_Play(bullet1Sfx);
+            SemiCircleBulletA1(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 5, angle, 360, 8, DS_BILL_BLUE, 5);
+            angle += 2;
+            yield;
+        }
+        angle += 16;
+        delay(3);
+        loop (6){
+            ObjSound_Play(bullet1Sfx);
+            SemiCircleBulletA1(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 5, angle, 360, 8, DS_BILL_PURPLE, 5);
+            angle -= 2;
+            yield;
+        }
+        angle += 8;
+        delay(3);
+    }
+}
+
+task TDrawLoop {
+	let spriteBoss = GetCurrentScriptDirectory() ~ "sprites/PelicanGodAmber.png";
+    ObjPrim_SetTexture(objBoss, spriteBoss);
+    ObjSprite2D_SetSourceRect(objBoss, 64, 1, 127, 64);
+    ObjSprite2D_SetDestCenter(objBoss);
+}
+
+task TFinalize{
+    while (IsAlive(objBoss)){
+        yield;
+    }
+    
+	Obj_Delete(objBoss);
+    DeleteShotAll(TYPE_ALL, TYPE_IMMEDIATE);
+    SetAutoDeleteObject(true);
+    CloseScript(GetOwnScriptID());
+
+	if (ObjEnemyBossScene_GetInfo(objScene, INFO_PLAYER_SHOOTDOWN_COUNT) 
+	  + ObjEnemyBossScene_GetInfo(objScene, INFO_PLAYER_SPELL_COUNT) == 0){
+		AddScore(ObjEnemyBossScene_GetInfo(objScene, INFO_SPELL_SCORE));
+	}
+    return;
+}

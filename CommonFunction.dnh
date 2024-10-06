@@ -1,0 +1,140 @@
+function delay(frame){
+    loop(frame){
+        yield;
+    }
+}
+
+function GetCenterX(){
+    return GetStgFrameWidth() / 2;
+}
+
+function GetCenterY(){
+    return GetStgFrameHeight() / 2;
+}
+
+function IsAlive(obj){
+    return ObjEnemy_GetInfo(obj, INFO_LIFE) > 0;
+}
+
+function IsHealthMore(obj, value){
+    return ObjEnemy_GetInfo(obj, INFO_LIFE) > value;
+}
+
+function IsHealthLess(obj, value){
+    return ObjEnemy_GetInfo(obj, INFO_LIFE) < value;
+}
+
+function IsHealthMore_Percent(obj, percent){
+    return (ObjEnemy_GetInfo(obj, INFO_LIFE) / maxHP) * 100 > percent;
+}
+
+function IsHealthLess_Percent(obj, percent){
+    return (ObjEnemy_GetInfo(obj, INFO_LIFE) / maxHP) * 100 < percent;
+}
+
+function IsInBound(x, y){
+    return (0 <= x) && (x < GetStgFrameWidth()) && (0 <= y) && (y < GetStgFrameHeight());
+}
+
+function lerp(s, e, t){ // t = [0; 1]
+    return s * (1 - t) + e * t;
+}
+
+function SemiCircleBulletA1(spawnX, spawnY, speed, centerAngle, arcAngle, bCount, graphic, delay){
+    let aStart = centerAngle - 0.5 * arcAngle;
+    let aEnd   = centerAngle + 0.5 * arcAngle;
+    ascent (i in 0..bCount){
+        let currentAngle = lerp(aStart, aEnd, i / bCount);
+        if (arcAngle % 360 != 0){
+            currentAngle = lerp(aStart, aEnd, i / (bCount - 1));
+        }
+        CreateShotA1(spawnX, spawnY, speed, currentAngle, graphic, delay);
+    }
+}
+
+function SemiCircleBulletA2(spawnX, spawnY, initSpeed, accel, maxSpeed, centerAngle, arcAngle, bCount, graphic, delay){
+    let aStart = centerAngle - 0.5 * arcAngle;
+    let aEnd   = centerAngle + 0.5 * arcAngle;
+    ascent (i in 0..bCount){
+        let currentAngle = lerp(aStart, aEnd, i / bCount);
+        if (arcAngle % 360 != 0){
+            currentAngle = lerp(aStart, aEnd, i / (bCount - 1));
+        }
+        CreateShotA2(spawnX, spawnY, initSpeed, currentAngle, accel, maxSpeed, graphic, delay);
+    }
+}
+
+function SemiCircleLooseLaserA1(spawnX, spawnY, speed, centerAngle, arcAngle, length, width, bCount, graphic, delay){
+    let aStart = centerAngle - 0.5 * arcAngle;
+    let aEnd   = centerAngle + 0.5 * arcAngle;
+    ascent (i in 0..bCount){
+        let currentAngle = lerp(aStart, aEnd, i / bCount);
+        if (arcAngle % 360 != 0){
+            currentAngle = lerp(aStart, aEnd, i / (bCount - 1));
+        }
+        CreateLooseLaserA1(spawnX, spawnY, speed, currentAngle, length, width, graphic, delay);
+    }
+}
+
+task RenderSpellShowcase{
+    let imgObj = ObjPrim_Create(OBJ_SPRITE_2D);
+    let imgPath = GetCurrentScriptDirectory() ~ "./sprites/AmberSpell.png";
+    ObjPrim_SetTexture(imgObj, imgPath);
+
+    ObjSprite2D_SetSourceRect(imgObj, 0, 0, 448, 448);
+    ObjSprite2D_SetDestCenter(imgObj);
+    ObjRender_SetPosition(imgObj, GetStgFrameWidth() + 80, GetCenterY(), 0);
+    ascent (i in 0..30){
+        ObjRender_SetX(imgObj, lerp(GetStgFrameWidth(), GetStgFrameWidth() - 80, sin(((i / 29) / 2) * 180)));
+        ObjRender_SetAlpha(imgObj, lerp(0, 100, i / 29));
+        yield;
+    }
+    delay(15);
+    ascent (i in 0..75){
+        ObjRender_SetY(imgObj, lerp(GetCenterY(), 50, (i ^ 2) / (74 ^ 2)));
+        ObjRender_SetAlpha(imgObj, lerp(100, 0, i / 74));
+        yield;
+    }
+    Obj_Delete(imgObj);
+}
+
+task RenderSpellText(objBoss, spellString){
+    let textObj = ObjText_Create();
+    ObjText_SetText(textObj, spellString);
+    ObjText_SetFontSize(textObj, 12);
+    ObjText_SetFontType(textObj, "MS Gothic");
+    ObjText_SetFontColorTop(textObj, 91, 206, 250);
+    ObjText_SetFontColorBottom(textObj, 245, 169, 184);
+    ObjText_SetFontBorderType(textObj, BORDER_FULL);
+    ObjText_SetFontBorderColor(textObj, 0, 0, 0);
+    ObjText_SetFontBorderWidth(textObj, 1);
+    ObjText_SetFontBold(textObj, true);
+
+    ObjText_SetHorizontalAlignment(textObj, ALIGNMENT_RIGHT);
+    ObjText_SetMaxWidth(textObj, 384);
+
+    ObjRender_SetY(textObj, GetStgFrameHeight() - 30);
+    ObjRender_SetX(textObj, 2 * GetStgFrameWidth());
+    ascent (i in 0..30){
+        ObjRender_SetX(textObj, lerp(GetStgFrameWidth(), 0, sin(((i / 29) / 2) * 180)));
+        yield;
+    }
+    delay(15);
+    ascent (i in 0..30){
+        ObjRender_SetY(textObj, lerp(GetStgFrameHeight() - 30, 20, (i ^ 2) / (29 ^ 2)));
+        yield;
+    }
+    while (IsAlive(objBoss)){
+        yield;
+    }
+    Obj_Delete(textObj);
+}
+
+function CreateSoundObj(filePath, volume){
+    let objSfx = ObjSound_Create();
+    ObjSound_Load(objSfx, filePath);
+    ObjSound_SetSoundDivision(objSfx, SOUND_SE);
+    ObjSound_SetLoopEnable(objSfx, false);
+    ObjSound_SetVolumeRate(objSfx, volume);
+    return objSfx
+}

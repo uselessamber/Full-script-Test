@@ -1,0 +1,213 @@
+#TouhouDanmakufu[Single]
+#ScriptVersion[3]
+#include "script/default_system/Default_ShotConst.txt"
+#include "./CommonFunction.dnh"
+
+let spellName = "Nature Sign \"Flowers Blooming in Spring\"";
+
+#Title["03_Spell"]
+#Text[spellName]
+#BGM["./battle.ogg"]
+#Player["./player/gt_Marisa/MarisaA.txt"]
+#System["./system/Default_System.txt"]
+
+let objBoss;
+let objScene = GetEnemyBossSceneObjectID();
+let maxHP = 2000;
+let chargeUpSfx = CreateSoundObj(GetCurrentScriptDirectory() ~ "/sfx/se_ch00.wav", 100);
+let bullet1Sfx = CreateSoundObj(GetCurrentScriptDirectory() ~ "/sfx/se_tan00.wav", 20);
+let bullet2Sfx = CreateSoundObj(GetCurrentScriptDirectory() ~ "/sfx/se_kira00.wav", 30);
+
+
+@Event{
+    alternative (GetEventType())
+    case (EV_REQUEST_LIFE){
+        SetScriptResult(maxHP);
+    }
+    case (EV_REQUEST_TIMER){
+        SetScriptResult(99);
+    }
+    case (EV_REQUEST_SPELL_SCORE){
+        SetScriptResult(1000000);        
+    }
+}
+
+@Initialize{
+	// SetPlayerLife(99);
+
+    objBoss = ObjEnemy_Create(OBJ_ENEMY_BOSS);
+    ObjEnemy_Regist(objBoss);
+    ObjMove_SetDestAtFrame(objBoss, GetCenterX(), GetCenterY() - 120, 60);
+
+	ObjEnemyBossScene_StartSpell(objScene);
+    ObjEnemy_SetDamageRate(objBoss, 12.5, 12.5);
+
+    RenderSpellText(objBoss, spellName);
+    RenderSpellShowcase;
+	TDrawLoop;
+    TFinalize;
+}
+
+let globalTimer = -60;
+let attacking = false;
+let firstRound = true;
+let blooming = false;
+
+@MainLoop{
+	// Hitbox stuff:
+	ObjEnemy_SetIntersectionCircleToShot(objBoss, ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 32);
+    ObjEnemy_SetIntersectionCircleToPlayer(objBoss, ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 64);
+	if (!firstRound){
+    	ObjEnemy_SetDamageRate(objBoss, 100, 100);
+	}
+
+	// Bullet stuff:
+    if (globalTimer >= 0 && !attacking){
+        blooming = false;
+        attacking = true;
+        Wave1;
+    }
+
+	// Timer stuff:
+	globalTimer += 1;
+    yield;
+}
+
+task Wave1{
+    loop(2){
+        delay(60);
+        ObjMove_SetDestAtWeight(objBoss, rand(GetCenterX() + 60, GetCenterX() - 60), rand(GetCenterY() - 150, GetCenterY() - 90), 15, 30);
+        delay(30);
+        SimpleSpray;
+        ascent (i in 0..3){
+            delay(12);
+            let angle1 = lerp(18, 162, i / 2);
+            let angle2 = -angle1;
+
+            angle1 += 90;
+            angle2 += 90;
+
+            SeedBombPellet(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), angle1, 0, 0.1, 6);
+            SeedBombPellet(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), angle2, 0, 0.1, 6);
+        }
+        delay(60);
+    }
+    Wave2;
+}
+
+task SimpleSpray{
+    let angle = GetAngleToPlayer(objBoss);
+    ObjSound_Play(bullet1Sfx);
+    SemiCircleBulletA1(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 4, angle, 120, 10, DS_STAR_S_BLUE, 3);
+    delay(15);
+    ObjSound_Play(bullet1Sfx);
+    SemiCircleBulletA1(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 4, angle, 120, 9, DS_STAR_S_BLUE, 3);
+    delay(15);
+    ObjSound_Play(bullet1Sfx);
+    SemiCircleBulletA1(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 4, angle, 120, 10, DS_STAR_S_BLUE, 3);
+}
+
+task Wave2{
+    ObjSound_Play(chargeUpSfx);
+    delay(60);
+    let angle = rand(0, 360);
+    BuffedSpray;
+    loop(3){
+        let bCount = 3;
+        ascent (i in 0..bCount){
+            SeedBombPellet(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), angle + (360 / bCount) * i, 0, 0.1, 6);
+        }
+        angle += 40;
+        delay(10);
+    }
+    delay(110);
+    blooming = true;
+    delay(180);
+    attacking = false;
+    firstRound = false;
+}
+
+task BuffedSpray{
+    let angle = GetAngleToPlayer(objBoss);
+    ObjSound_Play(bullet1Sfx);
+    SemiCircleBulletA1(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 4, angle, 120, 13, DS_STAR_S_BLUE, 3);
+    delay(15);
+    ObjSound_Play(bullet1Sfx);
+    SemiCircleBulletA1(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 4, angle, 120, 12, DS_STAR_S_BLUE, 3);
+    delay(15);
+    ObjSound_Play(bullet1Sfx);
+    SemiCircleBulletA1(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 4, angle, 120, 13, DS_STAR_S_BLUE, 3);
+    delay(15);
+    ObjSound_Play(bullet1Sfx);
+    SemiCircleBulletA1(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 4, angle, 120, 12, DS_STAR_S_BLUE, 3);
+    delay(15);
+    ObjSound_Play(bullet1Sfx);
+    SemiCircleBulletA1(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 4, angle, 120, 17, DS_STAR_S_BLUE, 3);
+}
+
+function SeedBombPellet(spawnX, spawnY, angle, initSpeed, accel, maxSpeed){
+    ObjSound_Play(bullet2Sfx);
+    let seed = CreateShotA2(spawnX, spawnY, initSpeed, angle, accel, maxSpeed, DS_RICE_S_GREEN, 5);
+    SeedFunction(seed);
+}
+
+task SeedFunction(obj){
+    while (IsInBound(ObjMove_GetX(obj), ObjMove_GetY(obj))){
+        yield;
+    }
+    ObjMove_SetSpeed(obj, 0);
+    let cx = ObjMove_GetX(obj);
+    let cy = ObjMove_GetY(obj);
+    loop(4){
+        let theta = rand(0, 360);
+        let r = 40 * (rand(0, 1) ^ 0.5);
+
+        let fx = cx + r * cos(theta);
+        let fy = cy + r * sin(theta);
+
+        let angle = rand(0, 360);
+        ObjSound_Play(bullet1Sfx);
+        ascent (i in 0..5){
+            let currAngle = angle + (360 / 5) * i;
+            let petal = CreateShotA1(fx + 5 * cos(currAngle), fy + 5 * sin(currAngle), 0, currAngle, DS_RICE_S_PURPLE, 5);
+            BloomingFunction(petal);
+        }
+        yield;
+    }
+    Obj_Delete(obj);
+}
+
+task BloomingFunction(obj){
+    while (!blooming){
+        yield;
+    }
+    if (!Obj_IsDeleted(obj)){
+        ObjSound_Play(bullet2Sfx);
+        ObjMove_SetAcceleration(obj, 0.01);
+        ObjMove_SetMaxSpeed(obj, 3);
+    }
+}
+
+task TDrawLoop {
+	let spriteBoss = GetCurrentScriptDirectory() ~ "sprites/PelicanGodAmber.png";
+    ObjPrim_SetTexture(objBoss, spriteBoss);
+    ObjSprite2D_SetSourceRect(objBoss, 64, 1, 127, 64);
+    ObjSprite2D_SetDestCenter(objBoss);
+}
+
+task TFinalize{
+    while (IsAlive(objBoss)){
+        yield;
+    }
+    
+	Obj_Delete(objBoss);
+    DeleteShotAll(TYPE_ALL, TYPE_IMMEDIATE);
+    SetAutoDeleteObject(true);
+    CloseScript(GetOwnScriptID());
+
+	if (ObjEnemyBossScene_GetInfo(objScene, INFO_PLAYER_SHOOTDOWN_COUNT) 
+	  + ObjEnemyBossScene_GetInfo(objScene, INFO_PLAYER_SPELL_COUNT) == 0){
+		AddScore(ObjEnemyBossScene_GetInfo(objScene, INFO_SPELL_SCORE));
+	}
+    return;
+}

@@ -1,0 +1,198 @@
+#TouhouDanmakufu[Single]
+#ScriptVersion[3]
+#include "script/default_system/Default_ShotConst.txt"
+#include "./CommonFunction.dnh"
+
+let spellName = "\"Violent Homing Thissle\"";
+
+#Title["01_Spell"]
+#Text[spellName]
+#BGM["./battle.ogg"]
+#Player["./player/gt_Marisa/MarisaA.txt"]
+#System["./system/Default_System.txt"]
+
+let objBoss;
+let objScene = GetEnemyBossSceneObjectID();
+let maxHP = 2000;
+let chargeUpSfx = CreateSoundObj(GetCurrentScriptDirectory() ~ "/sfx/se_ch00.wav", 100);
+let bullet1Sfx = CreateSoundObj(GetCurrentScriptDirectory() ~ "/sfx/se_tan00.wav", 20);
+let bullet2Sfx = CreateSoundObj(GetCurrentScriptDirectory() ~ "/sfx/se_kira00.wav", 30);
+let bullet3Sfx = CreateSoundObj(GetCurrentScriptDirectory() ~ "/sfx/se_enep00.wav", 30);
+
+@Event{
+    alternative (GetEventType())
+    case (EV_REQUEST_LIFE){
+        SetScriptResult(maxHP);
+    }
+    case (EV_REQUEST_TIMER){
+        SetScriptResult(99);
+    }
+    case (EV_REQUEST_SPELL_SCORE){
+        SetScriptResult(1000000);        
+    }
+}
+
+@Initialize{
+	// SetPlayerLife(99);
+
+    objBoss = ObjEnemy_Create(OBJ_ENEMY_BOSS);
+    ObjEnemy_Regist(objBoss);
+    ObjMove_SetDestAtFrame(objBoss, GetCenterX(), GetCenterY() - 120, 60);
+
+	ObjEnemyBossScene_StartSpell(objScene);
+    ObjEnemy_SetDamageRate(objBoss, 12.5, 12.5);
+
+    RenderSpellText(objBoss, spellName);
+    RenderSpellShowcase;
+	TDrawLoop;
+    TFinalize;
+}
+
+let globalTimer = -60;
+let firstRound = true;
+let attacking = false;
+
+@MainLoop{
+	// Hitbox stuff:
+	ObjEnemy_SetIntersectionCircleToShot(objBoss, ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 32);
+    ObjEnemy_SetIntersectionCircleToPlayer(objBoss, ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 64);
+	if (!firstRound){
+    	ObjEnemy_SetDamageRate(objBoss, 100, 100);
+	}
+
+	// Bullet stuff:
+    if (globalTimer >= 0 && !attacking){
+        attacking = true;
+        Wave1;
+    }
+
+	// Timer stuff:
+	globalTimer += 1;
+    yield;
+}
+
+task Wave1{
+    ObjMove_SetDestAtWeight(objBoss, rand(GetCenterX() + 60, GetCenterX() - 60), rand(GetCenterY() - 90, GetCenterY() - 60), 15, 30);
+    delay(10);
+    ascent (i in 0..15){
+        let cAngle = lerp(-160, -20, i / 14);
+        SpawnBasicThissle(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), cAngle);
+        delay(1);
+    }
+    delay(60);
+    ObjMove_SetDestAtWeight(objBoss, rand(GetCenterX() + 60, GetCenterX() - 60), rand(GetCenterY() - 90, GetCenterY() - 60), 15, 30);
+    let pAngle = GetAngleToPlayer(objBoss);
+    ascent (i in 0..6){
+        let cAngle = lerp(pAngle - 80, pAngle + 80, i / 5);
+        SpawnViolentThissle(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), cAngle);
+        delay(10);
+    }
+    delay(150);
+    Wave2;
+}
+
+task Wave2{
+    ObjMove_SetDestAtWeight(objBoss, rand(GetCenterX() + 60, GetCenterX() - 60), rand(GetCenterY() - 90, GetCenterY() - 60), 15, 30);
+    delay(10);
+    ascent (i in 0..20){
+        let cAngle = lerp(-160, -20, i / 19);
+        SpawnBasicThissle(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), cAngle);
+        delay(1);
+    }
+    delay(60);
+    ObjMove_SetDestAtWeight(objBoss, rand(GetCenterX() + 60, GetCenterX() - 60), rand(GetCenterY() - 90, GetCenterY() - 60), 15, 30);
+    let pAngle = GetAngleToPlayer(objBoss);
+    ascent (i in 0..6){
+        let cAngle = lerp(pAngle - 140, pAngle + 140, i / 5);
+        SpawnViolentThissle(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), cAngle);
+        delay(10);
+    }
+    delay(120);
+    ObjSound_Play(chargeUpSfx);
+	ObjMove_SetDestAtWeight(objBoss, GetCenterX(), GetCenterY() - 90, 15, 30);
+    delay(60);
+	Wave3Sub1;
+	Wave3Sub2;
+}
+
+task Wave3Sub1{
+    ascent (i in 0..60){
+		let mI = (1/2) * sin(((i - 5) / 10) * 180) + 0.5;
+        let cAngle = lerp(-180, 0, mI);
+        SpawnBasicThissle(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), cAngle);
+        delay(2);
+    }
+	delay(240);
+	firstRound = false;
+	attacking = false;
+}
+
+task Wave3Sub2{
+	let pAngle = GetAngleToPlayer(objBoss);
+    ascent (i in 0..8){
+        let cAngle = lerp(pAngle - 180, pAngle + 180, i / 8);
+        SpawnViolentThissle(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), cAngle);
+        delay(6);
+    }
+}
+
+let STARTSPEED = 20;
+let DECAYTIME  = 15;
+
+function SpawnBasicThissle(spawnX, spawnY, angle){
+    ObjSound_Play(bullet1Sfx);
+    let thissle = CreateShotA2(spawnX, spawnY, STARTSPEED, angle, - (STARTSPEED / DECAYTIME), 0, DS_MISSILE_BLUE, 5);
+    ThissleHoming(thissle);
+}
+
+task ThissleHoming(obj){
+    while (ObjMove_GetSpeed(obj) > 0){
+        yield;
+    }
+    ObjSound_Play(bullet2Sfx);
+    ObjMove_AddPatternA2(obj, 15, 0, GetAngleToPlayer(obj), 1, 0, 12);
+}
+
+function SpawnViolentThissle(spawnX, spawnY, angle){
+    ObjSound_Play(bullet1Sfx);
+    let thissle = CreateShotA2(spawnX, spawnY, 0, angle, 0.25, 12, DS_MISSILE_PURPLE, 5);
+    ThissleViolent(thissle);
+}
+
+task ThissleViolent(obj){
+    while (IsInBound(ObjMove_GetX(obj), ObjMove_GetY(obj))){
+        yield;
+    }
+    ObjMove_SetAcceleration(obj, 0);
+    ObjMove_SetSpeed(obj, 0);
+    let pAngle = GetAngleToPlayer(obj);
+    ObjSound_Play(bullet3Sfx);
+    SemiCircleBulletA1(ObjMove_GetX(obj), ObjMove_GetY(obj), 2, pAngle, 360, 11, DS_FIRE_RED, 5);
+    SemiCircleBulletA1(ObjMove_GetX(obj), ObjMove_GetY(obj), 1, pAngle, 360, 8, DS_BALL_S_RED, 5);
+    Obj_Delete(obj);
+}
+
+task TDrawLoop {
+	let spriteBoss = GetCurrentScriptDirectory() ~ "sprites/PelicanGodAmber.png";
+    ObjPrim_SetTexture(objBoss, spriteBoss);
+    ObjSprite2D_SetSourceRect(objBoss, 64, 1, 127, 64);
+    ObjSprite2D_SetDestCenter(objBoss);
+}
+
+task TFinalize{
+    while (IsAlive(objBoss)){
+        yield;
+    }
+    
+	Obj_Delete(objBoss);
+    DeleteShotAll(TYPE_ALL, TYPE_IMMEDIATE);
+    SetAutoDeleteObject(true);
+    CloseScript(GetOwnScriptID());
+
+	if (ObjEnemyBossScene_GetInfo(objScene, INFO_PLAYER_SHOOTDOWN_COUNT) 
+	  + ObjEnemyBossScene_GetInfo(objScene, INFO_PLAYER_SPELL_COUNT) == 0){
+		AddScore(ObjEnemyBossScene_GetInfo(objScene, INFO_SPELL_SCORE));
+	}
+    return;
+}
+

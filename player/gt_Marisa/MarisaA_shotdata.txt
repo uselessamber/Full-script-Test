@@ -1,0 +1,26 @@
+shot_image  = "./Marisa.png"
+
+ShotData{
+	id = 1 //ID - Default Green Shots
+	rect = (49,197,69,233)
+	render = ALPHA
+	alpha=164
+	collision = 16
+}
+
+ShotData{
+	id = 2 //ID - Orange Star Shots
+	rect = (96,199,113,216)
+	render = ADD 
+	alpha=195
+	collision = 24
+}
+
+ShotData{
+	id = 3 //ID - Blue Star Shots
+	rect = (81,199,96,216)
+	render = ADD 
+	alpha=195
+	collision = 24
+}
+

@@ -1,0 +1,103 @@
+#TouhouDanmakufu[Single]
+#ScriptVersion[3]
+#include "script/default_system/Default_ShotConst.txt"
+#include "./CommonFunction.dnh"
+
+#Title["00_Warmup"]
+#Text["Warm up nonspell."]
+#BGM["./battle.ogg"]
+#Player["./player/gt_Marisa/MarisaA.txt"]
+#System["./system/Default_System.txt"]
+
+let objBoss;
+let objScene = GetEnemyBossSceneObjectID();
+let maxHP = 4000;
+let bullet1Sfx = CreateSoundObj(GetCurrentScriptDirectory() ~ "/sfx/se_tan00.wav", 20);
+
+@Event{
+    alternative (GetEventType())
+    case (EV_REQUEST_LIFE){
+        SetScriptResult(maxHP);
+    }
+    case (EV_REQUEST_TIMER){
+        SetScriptResult(99);
+    }
+    case (EV_REQUEST_SPELL_SCORE){
+        SetScriptResult(1000000);        
+    }
+}
+
+
+@Initialize{
+	// SetPlayerLife(99);
+
+    objBoss = ObjEnemy_Create(OBJ_ENEMY_BOSS);
+    ObjEnemy_Regist(objBoss);
+    ObjMove_SetDestAtFrame(objBoss, GetCenterX(), GetCenterY() - 120, 60);
+
+	// ObjEnemyBossScene_StartSpell(objScene);
+    ObjEnemy_SetDamageRate(objBoss, 0, 0);
+
+	TDrawLoop;
+    TFinalize;
+}
+
+let initAngle = -1;
+let globalTimer = -60;
+let cooldownTimer = 0;
+let INITBCOUNT = 4;
+let bCount = INITBCOUNT;
+let MAXBCOUNT = 15;
+
+@MainLoop{
+	// Hitbox stuff:
+	ObjEnemy_SetIntersectionCircleToShot(objBoss, ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 32);
+    ObjEnemy_SetIntersectionCircleToPlayer(objBoss, ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 64);
+
+	// Bullet stuff:
+    if (globalTimer >= 0){
+        if (cooldownTimer <= 0){
+            if (initAngle == -1){
+                initAngle = GetAngleToPlayer(objBoss);
+            }
+            ObjSound_Play(bullet1Sfx);
+            SemiCircleBulletA2(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 8, -0.2, lerp(6, 2, (bCount - INITBCOUNT) / (MAXBCOUNT - INITBCOUNT)), initAngle, 360, bCount, DS_RICE_S_PURPLE, 5);
+            cooldownTimer = lerp(60, 5, (bCount - INITBCOUNT) / (MAXBCOUNT - INITBCOUNT));
+            ObjEnemy_SetDamageRate(objBoss, lerp(0, 100, (bCount - INITBCOUNT) / (MAXBCOUNT - INITBCOUNT)), lerp(0, 100, (bCount - INITBCOUNT) / (MAXBCOUNT - INITBCOUNT)));
+            if (bCount < MAXBCOUNT){
+                bCount += 1;
+            }
+            initAngle += lerp(0, 17, (bCount - INITBCOUNT) / (MAXBCOUNT - INITBCOUNT));
+        }else{
+            cooldownTimer -= 1;
+        }
+    }
+
+	// Timer stuff:
+	globalTimer += 1;
+    yield;
+}
+
+task TDrawLoop {
+	let spriteBoss = GetCurrentScriptDirectory() ~ "sprites/PelicanGodAmber.png";
+    ObjPrim_SetTexture(objBoss, spriteBoss);
+    ObjSprite2D_SetSourceRect(objBoss, 64, 1, 127, 64);
+    ObjSprite2D_SetDestCenter(objBoss);
+}
+
+task TFinalize{
+    while (IsAlive(objBoss)){
+        yield;
+    }
+    
+	Obj_Delete(objBoss);
+    DeleteShotAll(TYPE_ALL, TYPE_IMMEDIATE);
+    SetAutoDeleteObject(true);
+    CloseScript(GetOwnScriptID());
+
+	if (ObjEnemyBossScene_GetInfo(objScene, INFO_PLAYER_SHOOTDOWN_COUNT) 
+	  + ObjEnemyBossScene_GetInfo(objScene, INFO_PLAYER_SPELL_COUNT) == 0){
+		AddScore(ObjEnemyBossScene_GetInfo(objScene, INFO_SPELL_SCORE));
+	}
+    return;
+}
