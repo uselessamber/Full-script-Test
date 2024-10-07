@@ -62,6 +62,17 @@ let damageable = false;
         damageable = true;
     }
 
+    
+    if (IsHealthLess_Percent(objBoss, 99)){
+        summonTimer = 180;
+    }
+    if (IsHealthLess_Percent(objBoss, 66)){
+        summonTimer = 135;
+    }
+    if (IsHealthLess_Percent(objBoss, 33)){
+        summonTimer = 90;
+    }
+
 	// Bullet stuff:
     if (globalTimer >= 0 && globalTimer % summonTimer == 0){
         Activation(rand(0, 360));
@@ -81,10 +92,10 @@ function Activation(initialPhase){
     ascent (i in 0..6){
         let phase = (360 / 6) * i + initialPhase;
         if (i % 2 == 0){
-            let blue = CreateShotA1(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 0, phase, DS_STAR_M_BLUE, 5);
+            let blue = CreateShotA1(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 0, phase, DS_STAR_M_BLUE, 15);
             BlueStar(blue, phase);
         }else{
-            let pink = CreateShotA1(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 0, phase, DS_STAR_M_PURPLE, 5);
+            let pink = CreateShotA1(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 0, phase, DS_STAR_M_PURPLE, 15);
             PinkStar(pink, phase);
         }
     }
@@ -97,29 +108,15 @@ let pinkCooldown = 60;
 
 task BlueStar(obj, phase){
     ObjShot_SetAutoDelete(obj, false);
-    let ibx = ObjMove_GetX(objBoss);
-    let iby = ObjMove_GetY(objBoss);
     let ipx = GetPlayerX();
     let ipy = GetPlayerY();
     let px = 0;
     let py = 0;
-    let d = 0;
-    ascent (i in 0..60){
-        let cx = lerp(ibx, ipx, i / 60);
-        let cy = lerp(iby, ipy, i / 60);
-        d = lerp(0, distance, i / 60);
-        phase += angleVelo;
-        px = cx + cos(phase) * d;
-        py = cy + sin(phase) * d;
-        ObjMove_SetPosition(obj, px, py);
-        yield;
-    }
-    d = distance;
     let attackCooldown = blueCooldown;
     while (attackCooldown > 0){
         phase += angleVelo;
-        px = ipx + cos(phase) * d;
-        py = ipy + sin(phase) * d;
+        px = ipx + cos(phase) * distance;
+        py = ipy + sin(phase) * distance;
         ObjMove_SetPosition(obj, px, py);
         attackCooldown -= 1;
         yield;
@@ -133,29 +130,15 @@ task BlueStar(obj, phase){
 
 task PinkStar(obj, phase){
     ObjShot_SetAutoDelete(obj, false);
-    let ibx = ObjMove_GetX(objBoss);
-    let iby = ObjMove_GetY(objBoss);
     let ipx = GetPlayerX();
     let ipy = GetPlayerY();
     let px = 0;
     let py = 0;
-    let d = 0;
-    ascent (i in 0..60){
-        let cx = lerp(ibx, ipx, i / 60);
-        let cy = lerp(iby, ipy, i / 60);
-        d = lerp(0, distance, i / 60);
-        phase += angleVelo;
-        px = cx + cos(phase) * d;
-        py = cy + sin(phase) * d;
-        ObjMove_SetPosition(obj, px, py);
-        yield;
-    }
-    d = distance;
     let attackCooldown = pinkCooldown;
     while (attackCooldown > 0){
         phase += angleVelo;
-        px = ipx + cos(phase) * d;
-        py = ipy + sin(phase) * d;
+        px = ipx + cos(phase) * distance;
+        py = ipy + sin(phase) * distance;
         ObjMove_SetPosition(obj, px, py);
         attackCooldown -= 1;
         yield;
