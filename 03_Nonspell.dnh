@@ -66,15 +66,15 @@ task AttackLoop{
     while (IsAlive(objBoss)){
         loop(6){
             ObjSound_Play(bullet1Sfx);
-            SemiCircleBulletA2(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 6, -0.25, 4, angle1, 360, 5, DS_BILL_BLUE, 5);
-            SemiCircleBulletA2(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 6, -0.25, 4, angle2, 360, 5, DS_BILL_PURPLE, 5);
+            SemiCircleBulletA2(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 6, -0.2, 3, angle1, 360, 5, DS_BILL_BLUE, 5);
+            SemiCircleBulletA2(ObjMove_GetX(objBoss), ObjMove_GetY(objBoss), 6, -0.2, 3, angle2, 360, 5, DS_BILL_PURPLE, 5);
             angle1 += 2;
             angle2 -= 2;
             delay(1);
         }
         angle1 += 13;
         angle2 -= 13;
-        delay(5);
+        delay(10);
     }
 }
 
